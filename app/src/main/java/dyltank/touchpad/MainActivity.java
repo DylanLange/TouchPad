@@ -24,7 +24,8 @@ public class MainActivity extends AppCompatActivity {
     public float dx, dy;
 
     private String TAG = "TOUCH";
-    private AsyncTask networkClient;
+
+    private long lastClickTime;
 
     public DatagramSocket clientSocket;
     public InetAddress IPAddress;
@@ -38,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         //ImageView panel = (ImageView)findViewById(R.id.imageView);
-        networkClient = new AsyncNetworkClient().execute();
+        new AsyncMouseMove().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
 
     }
 
@@ -64,6 +65,8 @@ public class MainActivity extends AppCompatActivity {
                 initialX = lastX = event.getX();
                 initialY = lastY = event.getY();
 
+                lastClickTime = System.currentTimeMillis();
+
                 Log.d(TAG, "Action was DOWN");
                 break;
 
@@ -79,12 +82,18 @@ public class MainActivity extends AppCompatActivity {
                 lastX = newX;
                 lastY = newY;
 
+                //System.out.println("TIMEDIFF " + (int)(lastClickTime - System.currentTimeMillis()));
                 //Log.d(TAG, "Action was MOVE");
                 break;
 
             case MotionEvent.ACTION_UP:
                 float finalX = event.getX();
                 float finalY = event.getY();
+
+                if(lastClickTime - System.currentTimeMillis() > -150){
+                    System.out.println("CLICK!");
+                    new AsyncMouseClick().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                }
 
                 Log.d(TAG, "Action was UP");
 
@@ -132,7 +141,7 @@ public class MainActivity extends AppCompatActivity {
         return "";
     }
 
-    class AsyncNetworkClient extends AsyncTask<Void, Void, Void> {
+    class AsyncMouseMove extends AsyncTask<Void, Void, Void> {
 
         @Override
         protected void onPreExecute(){
@@ -148,7 +157,8 @@ public class MainActivity extends AppCompatActivity {
 
                 while(true){
                     if(dx == 0 && dy == 0) continue;
-                    byte[] sendData = (dx + ":" + dy).getBytes();
+                    if(dx > -1 && dx < 1 && dy > -1 && dy < 1) continue;
+                    byte[] sendData = ("MOVE" + dx + ":" + dy).getBytes();
                     dx = dy = 0;
                     DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, 6969);
 
@@ -167,6 +177,28 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(Void result){
 
+        }
+
+    }
+
+    class AsyncMouseClick extends AsyncTask<Void, Void, Void> {
+
+        @Override
+        protected Void doInBackground(Void... params) {
+
+            try{
+                byte[] sendData = ("CLICK").getBytes();
+
+                DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, 6969);
+
+                clientSocket.send(sendPacket);
+                System.out.println("SENT CLICK PACKET");
+
+            } catch (IOException e){
+                e.printStackTrace();
+            }
+
+            return null;
         }
 
     }
