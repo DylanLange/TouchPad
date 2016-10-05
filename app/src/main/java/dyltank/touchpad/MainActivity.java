@@ -30,7 +30,8 @@ public class MainActivity extends AppCompatActivity {
     public DatagramSocket clientSocket;
     public InetAddress IPAddress;
 
-    public String message = "";
+    public int currentNumFingers = 1;
+
     private DecimalFormat df = new DecimalFormat("#.#####");
 
     @Override
@@ -47,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
         //System.out.println(numFingers + " finger move -> X:" + dx + " | Y:" + dy);
 
         //message = String.format("%d:%f:%f", numFingers, dx, dy);
-
+        currentNumFingers = numFingers;
         this.dx += dx;
         this.dy += dy;
         df.format(this.dx);
@@ -157,8 +158,15 @@ public class MainActivity extends AppCompatActivity {
 
                 while(true){
                     if(dx == 0 && dy == 0) continue;
-                    if(dx > -1 && dx < 1 && dy > -1 && dy < 1) continue;
-                    byte[] sendData = ("MOVE" + dx + ":" + dy).getBytes();
+                    if(dx > -3 && dx < 3 && dy > -3 && dy < 3) continue;
+                    byte[] sendData = null;
+                    if(currentNumFingers == 1){
+                        sendData = ("MOVE" + dx + ":" + dy).getBytes();
+                    } else if(currentNumFingers == 2){
+                        sendData = ("SCROLL" + dx + ":" + dy).getBytes();
+                    } else {
+
+                    }
                     dx = dy = 0;
                     DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, 6969);
 
